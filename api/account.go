@@ -7,6 +7,7 @@ import (
 	"github.com/lib/pq"
 	"net/http"
 	db "simplebanks/db/sqlc"
+	"simplebanks/token"
 )
 
 type CreateAccountRequest struct {
@@ -22,8 +23,9 @@ func (server *Server) createAccount(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	auThPayload := c.MustGet(authorizationPayloadKey).(*token.Payload)
 	arg := db.CreateAccountParams{
-		Owner:    req.Owner,
+		Owner:    auThPayload.Username,
 		Currency: req.Currency,
 		Balance:  0,
 	}
@@ -43,29 +45,31 @@ func (server *Server) createAccount(c *gin.Context) {
 }
 
 type GetAccountRequest struct {
-	ID int64 `json:"id" binding:"required,min=1"`
+	ID int64 `uri:"id" binding:"required,min=1"`
 }
 
-func (server *Server) GetAccount(c *gin.Context) {
+func (server *Server) GetAccount(ctx *gin.Context) {
 	var req GetAccountRequest
-	if err := c.ShouldBindQuery(&req); err != nil {
-		c.JSON(http.StatusBadRequest, errorResponse(err))
-	}
-	account, err := server.store.GetAccount(c, req.ID)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			c.JSON(http.StatusNotFound, errorResponse(err))
-			return
-		}
-		c.JSON(http.StatusInternalServerError, errorResponse(err))
+	if err := ctx.ShouldBindUri(&req); err != nil { // 🛠️ Đổi từ ShouldBindJSON sang ShouldBindUri
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 	}
-	c.JSON(http.StatusOK, account)
+
+	account, err := server.store.GetAccount(ctx, req.ID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+	ctx.JSON(http.StatusOK, account)
 }
 
 type GetListAccountsRequest struct {
-	PageID   int32 `json:"page_id" binding:"required,min=1,max=100"`
-	PageSize int32 `json:"page_size" binding:"required,min=0,max=100"`
+	PageID   int32 `form:"page_id" binding:"required,min=1"`
+	PageSize int32 `form:"page_size" binding:"required,min=1,max=100"`
 }
 
 func (server *Server) ListAccount(c *gin.Context) {
@@ -73,7 +77,10 @@ func (server *Server) ListAccount(c *gin.Context) {
 	if err := c.ShouldBindQuery(&req); err != nil {
 		c.JSON(http.StatusBadRequest, errorResponse(err))
 	}
+	auThPayload := c.MustGet(authorizationPayloadKey).(*token.Payload)
+
 	arg := db.ListAccountsParams{
+		Owner:  auThPayload.Username,
 		Limit:  req.PageID,
 		Offset: req.PageSize,
 	}

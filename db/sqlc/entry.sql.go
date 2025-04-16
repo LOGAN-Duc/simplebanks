@@ -16,7 +16,7 @@ INSERT INTO entries (
 ) VALUES (
              $1, $2
          )
-    RETURNING id, account_id, created_at, amount
+    RETURNING id, account_id, amount, created_at
 `
 
 type CreateEntryParams struct {
@@ -30,8 +30,8 @@ func (q *Queries) CreateEntry(ctx context.Context, arg CreateEntryParams) (Entry
 	err := row.Scan(
 		&i.ID,
 		&i.AccountID,
-		&i.CreatedAt,
 		&i.Amount,
+		&i.CreatedAt,
 	)
 	return i, err
 }
@@ -47,7 +47,7 @@ func (q *Queries) DeleteEntry(ctx context.Context, id int64) error {
 }
 
 const getEntry = `-- name: GetEntry :one
-SELECT id, account_id, created_at, amount FROM entries
+SELECT id, account_id, amount, created_at FROM entries
 WHERE id = $1 LIMIT 1
 `
 
@@ -57,14 +57,14 @@ func (q *Queries) GetEntry(ctx context.Context, id int64) (Entry, error) {
 	err := row.Scan(
 		&i.ID,
 		&i.AccountID,
-		&i.CreatedAt,
 		&i.Amount,
+		&i.CreatedAt,
 	)
 	return i, err
 }
 
 const listEntries = `-- name: ListEntries :many
-SELECT id, account_id, created_at, amount FROM entries
+SELECT id, account_id, amount, created_at FROM entries
 ORDER BY id
     LIMIT $1
 OFFSET $2
@@ -87,8 +87,8 @@ func (q *Queries) ListEntries(ctx context.Context, arg ListEntriesParams) ([]Ent
 		if err := rows.Scan(
 			&i.ID,
 			&i.AccountID,
-			&i.CreatedAt,
 			&i.Amount,
+			&i.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -107,7 +107,7 @@ const updateEntry = `-- name: UpdateEntry :one
 UPDATE entries
 SET amount = $2
 WHERE id = $1
-    RETURNING id, account_id, created_at, amount
+    RETURNING id, account_id, amount, created_at
 `
 
 type UpdateEntryParams struct {
@@ -121,8 +121,8 @@ func (q *Queries) UpdateEntry(ctx context.Context, arg UpdateEntryParams) (Entry
 	err := row.Scan(
 		&i.ID,
 		&i.AccountID,
-		&i.CreatedAt,
 		&i.Amount,
+		&i.CreatedAt,
 	)
 	return i, err
 }

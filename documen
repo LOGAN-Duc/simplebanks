@@ -1,0 +1,15 @@
+go get github.com/golang/mock/gomock
+go get github.com/golang/mock/mockgen
+go get -u github.com/gin-gonic/gin
+go get github.com/spf13/viper
+go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+go install github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+go get github.com/google/uuid
+go get github.com/dgrijalva/jwt-go
+ go get github.com/o1egl/paseto
+
+migrate create -ext sql -dir db/migrations -seq create_users_table
+
+golang clean architecture
+https://github.com/golang-standards/project-layout/blob/master/README_vi.md
+https://github.com/uber-go/fx
